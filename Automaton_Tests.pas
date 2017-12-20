@@ -40,6 +40,22 @@ begin
     // zkusíme serializovat stavy a hranu
     TestingFramework.assertStringEquals('IF', serializeStates(aut));
     TestingFramework.assertStringEquals('1 2 S x', serializeEdge(aut, e));
+
+    // už nebudeme potřebovat tenhle automat
+    Automaton.destroy(aut);
+
+    // zkusíme parsování stavů
+    aut := createAutomaton();
+    parseStates(aut, 'IXF');
+    TestingFramework.assertStringEquals('IXF', serializeStates(aut));
+
+    // přidáme parsování hran
+    e := parseEdge(aut, '1 2 S a');
+    TestingFramework.assertStringEquals('1 2 S a', serializeEdge(aut, e));
+    e := parseEdge(aut, '2 3 E');
+    TestingFramework.assertStringEquals('2 3 E', serializeEdge(aut, e));
+    e := parseEdge(aut, '1 3 R +ab');
+    TestingFramework.assertStringEquals('1 3 R +ab', serializeEdge(aut, e));
 end;
 
 end.

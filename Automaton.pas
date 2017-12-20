@@ -79,6 +79,9 @@ procedure makeStateFinal(aut: PAutomaton; state: PState);
 function serializeStates(aut: PAutomaton): AnsiString;
 function serializeEdge(aut: PAutomaton; edge: PEdge): AnsiString;
 
+procedure parseStates(aut: PAutomaton; serialized: AnsiString);
+function parseEdge(aut: PAutomaton; serialized: AnsiString): PEdge;
+
 // typy přechodů
 const EDGE_TYPE__SYMBOL = 100;
 const EDGE_TYPE__REGEX = 200;
@@ -140,7 +143,6 @@ end;
  * Vytvoří v automatu nový stav
  *}
 function createState(aut: PAutomaton; isInitial, isFinal: boolean): PState;
-var state: PState;
 begin
     new(createState);
     createState^.isInitial := isInitial;
@@ -204,6 +206,28 @@ end;
 function createEpsilonEdge(aut: PAutomaton; origin, target: PState): PEdge;
 begin
     createEpsilonEdge := createSymbolEdge(aut, origin, target, #0);
+end;
+
+{**
+ * Vytvoří v automatu novou regexovou hranu
+ *}
+function createRegexEdge(
+    aut: PAutomaton;
+    origin, target: PState;
+    expression: RegularExpression.PNode
+): PEdge;
+var edge: PRegexEdge;
+begin
+    new(edge);
+    edge^.edgeType := EDGE_TYPE__REGEX;
+    edge^.origin := origin;
+    edge^.target := target;
+    edge^.expression := expression;
+
+    List.append(aut^.edges, edge);
+    List.append(origin^.edges, edge);
+
+    createRegexEdge := PEdge(edge);
 end;
 
 {**
@@ -273,6 +297,91 @@ end;
 // Parsing //
 /////////////
 
-// ...
+{**
+ * Zparsuje stavy automatu
+ * (a nastrká je do existujícího)
+ *}
+procedure parseStates(aut: PAutomaton; serialized: AnsiString);
+var i: integer;
+begin
+    if aut^.states <> nil then begin
+        writeln('ERROR! parseStates() but automaton already has some states');
+        halt;
+    end;
+
+    for i := 1 to length(serialized) do begin
+        if serialized[i] = 'X' then begin
+            createState(aut, false, false);
+        end else if serialized[i] = 'I' then begin
+            createState(aut, true, false);
+        end else if serialized[i] = 'F' then begin
+            createState(aut, false, true);
+        end else if serialized[i] = 'T' then begin
+            createState(aut, true, true);
+        end;
+    end;
+end;
+
+{**
+ * Zparsuje jednu hranu automatu
+ * (a strčí ji do existujícího)
+ *}
+function parseEdge(aut: PAutomaton; serialized: AnsiString): PEdge;
+// start ukazuje na "začátek" vstupu, i je pomocný ukazatel
+var start, i: integer;
+var originIndex, targetIndex: integer;
+begin
+    parseEdge := nil;
+
+    start := 1;
+    i := 1;
+
+    // načteme jeden index
+    while serialized[i] <> ' ' do begin
+        if i > length(serialized) then begin
+            writeln('Pasing error: ', serialized);
+            halt;
+        end;
+        i += 1;
+    end;
+    originIndex := StrToInt(copy(serialized, start, i - start));
+    i += 1;
+    start := i;
+
+    // načteme druhý index
+    while serialized[i] <> ' ' do begin
+        if i > length(serialized) then begin
+            writeln('Pasing error: ', serialized);
+            halt;
+        end;
+        i += 1;
+    end;
+    targetIndex := StrToInt(copy(serialized, start, i - start));
+    i += 1;
+    start := i;
+
+    // rozhodneme se podle typu
+    if serialized[i] = 'E' then begin // epsilon
+        parseEdge := createEpsilonEdge(aut,
+            List.getAt(aut^.states, originIndex),
+            List.getAt(aut^.states, targetIndex)
+        );
+    end else if serialized[i] = 'S' then begin // symbol
+        parseEdge := createSymbolEdge(aut,
+            List.getAt(aut^.states, originIndex),
+            List.getAt(aut^.states, targetIndex),
+            serialized[i + 2]
+        );
+    end else if serialized[i] = 'R' then begin // regex
+        parseEdge := createRegexEdge(aut,
+            List.getAt(aut^.states, originIndex),
+            List.getAt(aut^.states, targetIndex),
+            RegularExpression.parse(copy(serialized, i + 2))
+        );
+    end else begin
+        writeln('ERROR! parseEdge() - unknown edge type: ', serialized);
+        halt;
+    end
+end;
 
 end.

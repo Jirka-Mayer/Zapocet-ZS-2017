@@ -8,12 +8,11 @@ implementation
 
 uses TestingFramework, Converter, RegularExpression, Automaton, List;
 
-procedure runTests();
+// regulérní výraz na nedeteerministický automat
+procedure RxToNda();
 var exp: RegularExpression.PNode;
 var aut: Automaton.PAutomaton;
 begin
-    TestingFramework.testSuite('Converter');
-
     // převod symbolu
     exp := RegularExpression.parse('a');
     aut := Converter.regexToNondeterministic(exp);
@@ -76,6 +75,13 @@ begin
         '5 2 S d', Automaton.serializeEdge(aut, List.getAt(aut^.edges, 6)));
     RegularExpression.destroyExpression(exp);
     Automaton.destroy(aut);
+end;
+
+procedure runTests();
+begin
+    TestingFramework.testSuite('Converter');
+
+    RxToNda();
 end;
 
 end.

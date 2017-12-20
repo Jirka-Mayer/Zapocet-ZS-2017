@@ -34,7 +34,9 @@ begin
         i += 1;
         list := list^.next;
     end;
-    getAt := nil;
+    
+    writeln('Index out of bounds!');
+    halt;
 end;
 
 {**
