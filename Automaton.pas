@@ -76,6 +76,8 @@ procedure destroyEdge(edge: PEdge);
 procedure makeStateInitial(aut: PAutomaton; state: PState);
 procedure makeStateFinal(aut: PAutomaton; state: PState);
 
+procedure edgesToRegex(aut: PAutomaton);
+
 function serializeStates(aut: PAutomaton): AnsiString;
 function serializeEdge(aut: PAutomaton; edge: PEdge): AnsiString;
 
@@ -231,6 +233,16 @@ begin
 end;
 
 {**
+ * Odstraní hranu z automatu
+ * ! POZOR, neuvolní z paměti, na to je destroyEdge()
+ *}
+procedure removeEdge(aut: PAutomaton; edge: PEdge);
+begin
+    List.remove(aut^.edges, edge);
+    List.remove(edge^.origin^.edges, edge);
+end;
+
+{**
  * Uvolní hranu z paměti (velikost podle typu)
  *}
 procedure destroyEdge(edge: PEdge);
@@ -241,6 +253,100 @@ begin
         RegularExpression.destroyExpression(PRegexEdge(edge)^.expression);
         dispose(PRegexEdge(edge));
     end;
+end;
+
+{**
+ * Odstraní paralelní regexové hrany převodem na jednu hranu
+ *
+ * (všechny hrany v automatu musí být regexové)
+ *}
+procedure removeParallelRegexEdges(aut: PAutomaton);
+var s: PList;
+var ps: PState;
+var e: PList;
+var pe: PRegexEdge;
+var e2: PList;
+var pe2: PRegexEdge;
+begin
+    // přes všechny stavy
+    s := aut^.states;
+    while s <> nil do begin
+        ps := PState(s^.item);
+
+        // přes všechny hrany vycházející ze stavu
+        e := ps^.edges;
+        while e <> nil do begin
+            pe := PRegexEdge(e^.item);
+
+            // najdeme další hranu se stejným cílem
+            // a přilepíme ji k této
+            e2 := e^.next;
+            while e2 <> nil do begin
+                pe2 := PRegexEdge(e2^.item);
+
+                // jiný cíl - přeskočíme
+                if pe2^.target <> pe^.target then begin
+                    e2 := e2^.next;
+                    continue;
+                end;
+
+                // přilepíme k první hraně
+                pe^.expression := RegularExpression.createAlternationNode(
+                    pe^.expression,
+                    pe2^.expression
+                );
+
+                // inkrementaci uděláme před odstraněním hrany
+                e2 := e2^.next;
+
+                // odstraníme druhou hranu
+                removeEdge(aut, PEdge(pe2));
+
+                // jen obyčejný dispose, chceme zachovat regulární výraz
+                dispose(pe2);
+            end;
+
+            e := e^.next;
+        end;
+
+        s := s^.next;
+    end;
+end;
+
+{**
+ * Převede hrany v automatu ze symbolových na regexové
+ *}
+procedure edgesToRegex(aut: PAutomaton);
+var e: PList;
+var es: PSymbolEdge;
+begin
+    // projdeme všechny hrany
+    e := aut^.edges;
+    while e <> nil do begin
+        // pokud už je regexová, přeskočíme ji
+        if isEdgeOfType(PEdge(e^.item), EDGE_TYPE__REGEX) then begin
+            e := e^.next;
+            continue;
+        end;
+
+        // ukážeme si na naši symbolovou hranu
+        es := PSymbolEdge(e^.item);
+        
+        // inkrementujeme pointer už teď,
+        // protože budeme prvek ze seznamu odstraňovat
+        e := e^.next;
+
+        // vytvoříme regex hranu a přidáme ji do automatu
+        createRegexEdge(aut, es^.origin, es^.target,
+            RegularExpression.createSymbolNode(es^.symbol));
+
+        // odstraníme původní symbolovou hranu
+        removeEdge(aut, PEdge(es)); // z automatu
+        destroyEdge(PEdge(es)); // z paměti
+    end;
+
+    // odstraníme paralelní hrany
+    removeParallelRegexEdges(aut);
 end;
 
 ///////////////////

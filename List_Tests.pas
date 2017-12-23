@@ -41,6 +41,9 @@ begin
     TestingFramework.assertIntEquals(2, List.indexOf(l, b));
     TestingFramework.assertIntEquals(3, List.indexOf(l, c));
 
+    // délka
+    TestingFramework.assertIntEquals(3, List.getLength(l));
+
     // zahodíme bezpečně vytvořený seznam a jdeme testovat vytváření
     destroy(l);
 
@@ -53,6 +56,15 @@ begin
     TestingFramework.assertIntEquals(1, List.indexOf(l, a));
     TestingFramework.assertIntEquals(2, List.indexOf(l, b));
     TestingFramework.assertIntEquals(3, List.indexOf(l, c));
+
+    TestingFramework.assertPointerEquals(a, List.getAt(l, 1));
+    TestingFramework.assertPointerEquals(b, List.getAt(l, 2));
+    TestingFramework.assertPointerEquals(c, List.getAt(l, 3));
+
+    // odebereme druhý prvek a ujistíme se, že se indexy posunuly
+    List.remove(l, b);
+    TestingFramework.assertIntEquals(1, List.indexOf(l, a));
+    TestingFramework.assertIntEquals(2, List.indexOf(l, c));
 end;
 
 end.

@@ -14,7 +14,9 @@ type
 
 function getAt(list: PList; index: integer): Pointer;
 function indexOf(list: PList; item: Pointer): integer;
+function getLength(list: PList): integer;
 procedure append(var list: PList; item: Pointer);
+procedure remove(var list: PList; item: Pointer);
 procedure destroy(var list: PList);
 
 implementation
@@ -58,6 +60,18 @@ begin
 end;
 
 {**
+ * Vrátí délku seznamu
+ *}
+function getLength(list: PList): integer;
+begin
+    getLength := 0;
+    while list <> nil do begin
+        getLength += 1;
+        list := list^.next;
+    end;
+end;
+
+{**
  * Přidá prvek na konec seznamu
  *}
 procedure append(var list: PList; item: Pointer);
@@ -84,6 +98,31 @@ begin
     n^.item := item;
     n^.next := nil;
     tail^.next := n;
+end;
+
+{**
+ * Odebere prvek ze seznamu (první, na který narazí, pokud je tam víckrát)
+ *}
+procedure remove(var list: PList; item: Pointer);
+var p, tail: PList;
+begin
+    p := list;
+    tail := nil;
+
+    while p <> nil do begin
+        if p^.item = item then begin
+            if tail = nil then begin
+                list := p^.next;
+                dispose(p);
+            end else begin
+                tail^.next := p^.next;
+                dispose(p);
+            end;
+            exit;
+        end;
+        tail := p;
+        p := p^.next;
+    end;
 end;
 
 {**

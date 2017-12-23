@@ -77,11 +77,33 @@ begin
     Automaton.destroy(aut);
 end;
 
+procedure NdaToRgx();
+var exp: RegularExpression.PNode;
+var aut: Automaton.PAutomaton;
+begin
+    // Vyzkoušíme správný převod symbolových hran na regex hrany.
+    // Máme automat, co odpovídá výrazu a|b :
+    aut := Automaton.createAutomaton();
+    Automaton.parseStates(aut, 'IF');
+    Automaton.parseEdge(aut, '1 2 S a');
+    Automaton.parseEdge(aut, '1 2 S b');
+    Automaton.edgesToRegex(aut);
+    TestingFramework.assertStringEquals('1 2 R +ab',
+        Automaton.serializeEdge(aut, List.getAt(aut^.edges, 1)));
+    Automaton.destroy(aut);
+
+
+    //exp := Converter.nondeterministicToRegex(aut);
+    //RegularExpression.destroyExpression(exp);
+end;
+
 procedure runTests();
 begin
-    TestingFramework.testSuite('Converter');
-
+    TestingFramework.testSuite('Converter - RxToNda');
     RxToNda();
+
+    TestingFramework.testSuite('Converter - NdaToRgx');
+    NdaToRgx();
 end;
 
 end.
