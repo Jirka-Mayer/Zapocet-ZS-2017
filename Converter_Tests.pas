@@ -86,15 +86,41 @@ begin
     aut := Automaton.createAutomaton();
     Automaton.parseStates(aut, 'IF');
     Automaton.parseEdge(aut, '1 2 S a');
-    Automaton.parseEdge(aut, '1 2 S b');
+    Automaton.parseEdge(aut, '1 2 S !');
     Automaton.edgesToRegex(aut);
-    TestingFramework.assertStringEquals('1 2 R +ab',
+    TestingFramework.assertStringEquals('1 2 R +a!',
         Automaton.serializeEdge(aut, List.getAt(aut^.edges, 1)));
     Automaton.destroy(aut);
 
+    // zkusíme převést automat "ab"
+    aut := Automaton.createAutomaton();
+    Automaton.parseStates(aut, 'IXF');
+    Automaton.parseEdge(aut, '1 2 S a');
+    Automaton.parseEdge(aut, '2 3 S b');
+    exp := Converter.nondeterministicToRegex(aut);
+    TestingFramework.assertStringEquals('...!ab!', RegularExpression.serializePrefix(exp));
+    Automaton.destroy(aut);
+    RegularExpression.destroyExpression(exp);
 
-    //exp := Converter.nondeterministicToRegex(aut);
-    //RegularExpression.destroyExpression(exp);
+    // zkusíme převést automat "ab|c"
+    aut := Automaton.createAutomaton();
+    Automaton.parseStates(aut, 'IXF');
+    Automaton.parseEdge(aut, '1 2 S a');
+    Automaton.parseEdge(aut, '2 3 S b');
+    Automaton.parseEdge(aut, '1 3 S c');
+    exp := Converter.nondeterministicToRegex(aut);
+    TestingFramework.assertStringEquals('.+.!c..!ab!', RegularExpression.serializePrefix(exp));
+    Automaton.destroy(aut);
+    RegularExpression.destroyExpression(exp);
+
+    // zkusíme převést automat "a*"
+    aut := Automaton.createAutomaton();
+    Automaton.parseStates(aut, 'T');
+    Automaton.parseEdge(aut, '1 1 S a');
+    exp := Converter.nondeterministicToRegex(aut);
+    TestingFramework.assertStringEquals('.!.*a!', RegularExpression.serializePrefix(exp));
+    Automaton.destroy(aut);
+    RegularExpression.destroyExpression(exp);
 end;
 
 procedure runTests();

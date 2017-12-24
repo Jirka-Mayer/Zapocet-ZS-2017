@@ -17,7 +17,7 @@ begin
 end;
 
 procedure runTests();
-var a: PNode;
+var a, b: PNode;
 begin
     TestingFramework.testSuite('RegularExpression');
 
@@ -57,6 +57,13 @@ begin
 
     // složitější test všeho
     testSerialization('+.x*a.bd');
+
+    // vyzkoušíme klonování
+    a := parse('+.x*a.bd');
+    b := clone(a);
+    destroyExpression(a);
+    TestingFramework.assertStringEquals('+.x*a.bd', serializePrefix(b));
+    destroyExpression(b);
 end;
 
 end.

@@ -72,17 +72,24 @@ procedure destroy(aut: PAutomaton);
 function createState(aut: PAutomaton; isInitial, isFinal: boolean): PState;
 function createSymbolEdge(aut: PAutomaton; origin, target: PState; symbol: char): PEdge;
 function createEpsilonEdge(aut: PAutomaton; origin, target: PState): PEdge;
+function createRegexEdge(aut: PAutomaton; origin, target: PState; expression: RegularExpression.PNode): PEdge;
 procedure destroyEdge(edge: PEdge);
 procedure makeStateInitial(aut: PAutomaton; state: PState);
 procedure makeStateFinal(aut: PAutomaton; state: PState);
+function isEdgeOfType(edge: PEdge; edgeType: byte): boolean;
 
 procedure edgesToRegex(aut: PAutomaton);
+function pickInputEdges(aut: PAutomaton; state: PState): List.PList;
+function pickLoop(aut: PAutomaton; state: PState): PEdge;
+function pickOutputEdges(aut: PAutomaton; state: PState): List.PList;
 
 function serializeStates(aut: PAutomaton): AnsiString;
 function serializeEdge(aut: PAutomaton; edge: PEdge): AnsiString;
 
 procedure parseStates(aut: PAutomaton; serialized: AnsiString);
 function parseEdge(aut: PAutomaton; serialized: AnsiString): PEdge;
+
+procedure printAutomaton(aut: PAutomaton);
 
 // typy přechodů
 const EDGE_TYPE__SYMBOL = 100;
@@ -207,11 +214,13 @@ end;
  *}
 function createEpsilonEdge(aut: PAutomaton; origin, target: PState): PEdge;
 begin
-    createEpsilonEdge := createSymbolEdge(aut, origin, target, #0);
+    createEpsilonEdge := createSymbolEdge(aut, origin, target, EPSILON_SYMBOL);
 end;
 
 {**
  * Vytvoří v automatu novou regexovou hranu
+ *
+ * (pokud mezi danými stavy regex hrana existuje, provede její spojení)
  *}
 function createRegexEdge(
     aut: PAutomaton;
@@ -219,17 +228,42 @@ function createRegexEdge(
     expression: RegularExpression.PNode
 ): PEdge;
 var edge: PRegexEdge;
+var e: List.PList;
+var existing: PRegexEdge;
 begin
-    new(edge);
-    edge^.edgeType := EDGE_TYPE__REGEX;
-    edge^.origin := origin;
-    edge^.target := target;
-    edge^.expression := expression;
+    // najde stávající regex hranu
+    existing := nil;
+    e := origin^.edges;
+    while e <> nil do begin
+        if isEdgeOfType(PEdge(e^.item), EDGE_TYPE__REGEX)
+            and (PEdge(e^.item)^.target = target) then
+        begin
+            existing := PRegexEdge(e^.item);
+            break;
+        end;
+        e := e^.next;
+    end;
 
-    List.append(aut^.edges, edge);
-    List.append(origin^.edges, edge);
+    // pokud stávající není, vytvoříme novou
+    if existing = nil then begin
+        new(edge);
+        edge^.edgeType := EDGE_TYPE__REGEX;
+        edge^.origin := origin;
+        edge^.target := target;
+        edge^.expression := expression;
 
-    createRegexEdge := PEdge(edge);
+        List.append(aut^.edges, edge);
+        List.append(origin^.edges, edge);
+
+        createRegexEdge := PEdge(edge);
+    // přidáme výraz do stávající
+    end else begin
+        existing^.expression := RegularExpression.createAlternationNode(
+            existing^.expression,
+            expression
+        );
+        createRegexEdge := PEdge(existing);
+    end;
 end;
 
 {**
@@ -259,6 +293,10 @@ end;
  * Odstraní paralelní regexové hrany převodem na jednu hranu
  *
  * (všechny hrany v automatu musí být regexové)
+ *
+ * !!!!!!!!!!!
+ * Metoda je zastaralá, nyní logiku řeší funkce createRegexEdge()
+ * !!!!!!!!!!!
  *}
 procedure removeParallelRegexEdges(aut: PAutomaton);
 var s: PList;
@@ -346,7 +384,75 @@ begin
     end;
 
     // odstraníme paralelní hrany
-    removeParallelRegexEdges(aut);
+    // !!!! ne - nyní se dělá průběžně při přidávání nových hran
+    //removeParallelRegexEdges(aut);
+end;
+
+{**
+ * Vybere z automatu vstupní hrany daného stavu
+ * !!! z automatu je odstraní !!!
+ *}
+function pickInputEdges(aut: PAutomaton; state: PState): List.PList;
+var e: List.PList;
+var ep: PEdge;
+begin
+    pickInputEdges := nil;
+
+    e := aut^.edges;
+    while e <> nil do begin
+        ep := PEdge(e^.item);
+        if ep^.target = state then begin
+            e := e^.next;
+            removeEdge(aut, ep);
+            List.append(pickInputEdges, ep);
+
+            continue; // !!
+        end;
+
+        e := e^.next;
+    end;
+end;
+
+{**
+ * Vybere z automatu jednu smyčku na daném uzlu
+ * !!! z automatu ji odstraní !!!
+ *}
+function pickLoop(aut: PAutomaton; state: PState): PEdge;
+var e: List.PList;
+var ep: PEdge;
+begin
+    pickLoop := nil;
+
+    e := state^.edges;
+    while e <> nil do begin
+        ep := PEdge(e^.item);
+        if ep^.target = state then begin
+            removeEdge(aut, ep);
+            pickLoop := ep;
+            exit;
+        end;
+
+        e := e^.next;
+    end;
+end;
+
+{**
+ * Vybere z automatu výstupní hrany daného stavu
+ * !!! z automatu je odstraní !!!
+ *}
+function pickOutputEdges(aut: PAutomaton; state: PState): List.PList;
+var e: List.PList;
+var ep: PEdge;
+begin
+    pickOutputEdges := nil;
+
+    e := state^.edges;
+    while e <> nil do begin
+        ep := PEdge(e^.item);
+        e := e^.next;
+        removeEdge(aut, ep);
+        List.append(pickOutputEdges, ep);
+    end;
 end;
 
 ///////////////////
@@ -386,7 +492,7 @@ begin
         IntToStr(List.indexOf(aut^.states, edge^.target)) + ' ';
 
     if isEdgeOfType(edge, EDGE_TYPE__SYMBOL) then begin
-        if PSymbolEdge(edge)^.symbol = #0 then begin
+        if PSymbolEdge(edge)^.symbol = EPSILON_SYMBOL then begin
             // extra práce s epsilonama
             serializeEdge += 'E';
         end else begin
@@ -488,6 +594,22 @@ begin
         writeln('ERROR! parseEdge() - unknown edge type: ', serialized);
         halt;
     end
+end;
+
+///////////
+// Debug //
+///////////
+
+procedure printAutomaton(aut: PAutomaton);
+var edgeCount, i: integer;
+begin
+    edgeCount := List.getLength(aut^.edges);
+
+    writeln('Automaton: ================');
+    writeln(serializeStates(aut));
+    for i := 1 to edgeCount do
+        writeln(serializeEdge(aut, List.getAt(aut^.edges, i)));
+    writeln();
 end;
 
 end.

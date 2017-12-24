@@ -11,6 +11,7 @@ interface
 const ALTERNATION_SYMBOL = '+';
 const CONCATENATION_SYMBOL = '.';
 const KLEENE_SYMBOL = '*';
+const EPSILON_SYMBOL = '!';
 
 // identifikátory typů uzlů
 const NODE_TYPE__EMPTY_SET = 0;       // 0
@@ -30,9 +31,11 @@ procedure destroyExpression(expression: PNode);
 function parse(serialized: AnsiString): PNode;
 
 function createSymbolNode(symbol: char): PNode;
+function createEpsilonNode(): PNode;
 function createConcatenationNode(a, b: PNode): PNode;
 function createAlternationNode(a, b: PNode): PNode;
 function createKleeneNode(a: PNode): PNode;
+function clone(source: PNode): PNode;
 
 function isNodeOfType(node: PNode; nodeType: byte): boolean;
 
@@ -68,8 +71,6 @@ type PByte = ^byte;
 
 {**
  * Vytvoří uzel symbolu - nějaký znak možného vstupu
- *
- * pokud je vložený znak nula (binárně), tak se vnímá jako epsilon
  *}
 function createSymbolNode(symbol: char): PNode;
 var symbolNode: PSymbolNode;
@@ -80,6 +81,14 @@ begin
     symbolNode^.symbol := symbol;
 
     createSymbolNode := PNode(symbolNode);
+end;
+
+{**
+ * Vytvoří uzel symbolu epsilon
+ *}
+function createEpsilonNode(): PNode;
+begin
+    createEpsilonNode := createSymbolNode(EPSILON_SYMBOL);
 end;
 
 {**
@@ -206,6 +215,33 @@ end;
 //////////////////////////////
 // Logika obecně pro výrazy //
 //////////////////////////////
+
+{**
+ * Vytvoří kopii regulárního výrazu
+ *}
+function clone(source: PNode): PNode;
+begin
+    if isNodeOfType(source, NODE_TYPE__SYMBOL) then begin
+        clone := createSymbolNode(PSymbolNode(source)^.symbol);
+    end else if isNodeOfType(source, NODE_TYPE__CONCATENATION) then begin
+        clone := createConcatenationNode(
+            clone(PBinaryOperatorNode(source)^.a),
+            clone(PBinaryOperatorNode(source)^.b)
+        );
+    end else if isNodeOfType(source, NODE_TYPE__ALTERNATION) then begin
+        clone := createAlternationNode(
+            clone(PBinaryOperatorNode(source)^.a),
+            clone(PBinaryOperatorNode(source)^.b)
+        );
+    end else if isNodeOfType(source, NODE_TYPE__KLEENE) then begin
+        clone := createKleeneNode(
+            clone(PUnaryOperatorNode(source)^.a)
+        );
+    end else begin
+        writeln('ERROR! unknown node type in clone()');
+        halt;
+    end;
+end;
 
 {**
  * Kontroluje, zda je uzel daného typu
