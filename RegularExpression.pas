@@ -35,8 +35,9 @@ function createEpsilonNode(): PNode;
 function createConcatenationNode(a, b: PNode): PNode;
 function createAlternationNode(a, b: PNode): PNode;
 function createKleeneNode(a: PNode): PNode;
-function clone(source: PNode): PNode;
 
+function clone(source: PNode): PNode;
+function removeUselessEpsilons(var expression: PNode): boolean;
 function isNodeOfType(node: PNode; nodeType: byte): boolean;
 
 // list stromu - symbol abecedy
@@ -244,6 +245,70 @@ begin
 end;
 
 {**
+ * Odstraní z výrazu zbytečné epsilony
+ *
+ * Vrátí true, pokud došlo ke změně výrazu
+ *}
+function removeUselessEpsilons(var expression: PNode): boolean;
+var tmp: PNode;
+begin
+    removeUselessEpsilons := false;
+
+    // vyházíme epsilony z pod-výrazů
+    if isNodeOfType(expression, NODE_TYPE__CONCATENATION)
+        or isNodeOfType(expression, NODE_TYPE__ALTERNATION)
+    then begin
+        while removeUselessEpsilons(PBinaryOperatorNode(expression)^.a) do
+            removeUselessEpsilons := true;
+        while removeUselessEpsilons(PBinaryOperatorNode(expression)^.b) do
+            removeUselessEpsilons := true;
+    end else if isNodeOfType(expression, NODE_TYPE__KLEENE) then begin
+        while removeUselessEpsilons(PUnaryOperatorNode(expression)^.a) do
+            removeUselessEpsilons := true;
+    end;
+
+    // zkontrolujeme tento výraz, zda ho není třeba upravit
+    // epsilon . R --> R
+    if isNodeOfType(expression, NODE_TYPE__CONCATENATION)
+        and isNodeOfType(PBinaryOperatorNode(expression)^.a, NODE_TYPE__SYMBOL)
+        and (PSymbolNode(PBinaryOperatorNode(expression)^.a)^.symbol = EPSILON_SYMBOL)
+    then begin
+        tmp := expression;
+        expression := clone(PBinaryOperatorNode(expression)^.b);
+        destroyExpression(tmp);
+
+        removeUselessEpsilons := true;
+        exit;
+    end;
+
+    // R . epsilon --> R
+    if isNodeOfType(expression, NODE_TYPE__CONCATENATION)
+        and isNodeOfType(PBinaryOperatorNode(expression)^.b, NODE_TYPE__SYMBOL)
+        and (PSymbolNode(PBinaryOperatorNode(expression)^.b)^.symbol = EPSILON_SYMBOL)
+    then begin
+        tmp := expression;
+        expression := clone(PBinaryOperatorNode(expression)^.a);
+        destroyExpression(tmp);
+
+        removeUselessEpsilons := true;
+        exit;
+    end;
+
+    // epsilon * --> epsilon
+    if isNodeOfType(expression, NODE_TYPE__KLEENE)
+        and isNodeOfType(PUnaryOperatorNode(expression)^.a, NODE_TYPE__SYMBOL)
+        and (PSymbolNode(PUnaryOperatorNode(expression)^.a)^.symbol = EPSILON_SYMBOL)
+    then begin
+        tmp := expression;
+        expression := clone(PUnaryOperatorNode(expression)^.a);
+        destroyExpression(tmp);
+
+        removeUselessEpsilons := true;
+        exit;
+    end;
+end;
+
+{**
  * Kontroluje, zda je uzel daného typu
  *
  * node - testovaný uzel
@@ -403,8 +468,8 @@ begin
         parserError('Parsing symbol but parser already ended');
 
     s := parserSeek();
-    if not ((s in ['A'..'Z']) or (s in ['a' .. 'z'])) then
-        parserError('Uknown symbol character');
+    if not ((s in ['A'..'Z']) or (s in ['a' .. 'z']) or (s = EPSILON_SYMBOL)) then
+        parserError('Unkown symbol character');
 
     parseSymbol := createSymbolNode(parserPop());
 end;

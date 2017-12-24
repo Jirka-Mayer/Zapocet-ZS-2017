@@ -110,6 +110,9 @@ begin
             continue;
         end;
 
+        // DEBUG
+        //Automaton.printAutomaton(aut);
+
         // najdeme smyčku a vyzobneme ji
         // (musí být první - smyčka je jak vstup, tak výstup)
         loop := Automaton.PRegexEdge(
@@ -145,7 +148,9 @@ begin
                         RegularExpression.createConcatenationNode(
                             RegularExpression.clone(PRegexEdge(input^.item)^.expression),
                             RegularExpression.createConcatenationNode(
-                                RegularExpression.createKleeneNode(loop^.expression),
+                                RegularExpression.createKleeneNode(
+                                    RegularExpression.clone(loop^.expression)
+                                ),
                                 RegularExpression.clone(PRegexEdge(output^.item)^.expression)
                             )
                         )

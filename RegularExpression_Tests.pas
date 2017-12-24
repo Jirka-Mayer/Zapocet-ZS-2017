@@ -64,6 +64,32 @@ begin
     destroyExpression(a);
     TestingFramework.assertStringEquals('+.x*a.bd', serializePrefix(b));
     destroyExpression(b);
+
+    // zjednodušování epsilon výrazů
+    a := parse('.!x');
+    removeUselessEpsilons(a);
+    TestingFramework.assertStringEquals('x', serializePrefix(a));
+    destroyExpression(a);
+
+    a := parse('...!xy!');
+    removeUselessEpsilons(a);
+    TestingFramework.assertStringEquals('.xy', serializePrefix(a));
+    destroyExpression(a);
+
+    a := parse('*!');
+    removeUselessEpsilons(a);
+    TestingFramework.assertStringEquals('!', serializePrefix(a));
+    destroyExpression(a);
+
+    a := parse('.a*!');
+    removeUselessEpsilons(a);
+    TestingFramework.assertStringEquals('a', serializePrefix(a));
+    destroyExpression(a);
+
+    a := parse('.+..!ab.!c!');
+    removeUselessEpsilons(a);
+    TestingFramework.assertStringEquals('+.abc', serializePrefix(a));
+    destroyExpression(a);
 end;
 
 end.

@@ -99,6 +99,8 @@ begin
     Automaton.parseEdge(aut, '2 3 S b');
     exp := Converter.nondeterministicToRegex(aut);
     TestingFramework.assertStringEquals('...!ab!', RegularExpression.serializePrefix(exp));
+    RegularExpression.removeUselessEpsilons(exp);
+    TestingFramework.assertStringEquals('.ab', RegularExpression.serializePrefix(exp));
     Automaton.destroy(aut);
     RegularExpression.destroyExpression(exp);
 
@@ -110,6 +112,8 @@ begin
     Automaton.parseEdge(aut, '1 3 S c');
     exp := Converter.nondeterministicToRegex(aut);
     TestingFramework.assertStringEquals('.+.!c..!ab!', RegularExpression.serializePrefix(exp));
+    RegularExpression.removeUselessEpsilons(exp);
+    TestingFramework.assertStringEquals('+c.ab', RegularExpression.serializePrefix(exp));
     Automaton.destroy(aut);
     RegularExpression.destroyExpression(exp);
 
@@ -119,6 +123,27 @@ begin
     Automaton.parseEdge(aut, '1 1 S a');
     exp := Converter.nondeterministicToRegex(aut);
     TestingFramework.assertStringEquals('.!.*a!', RegularExpression.serializePrefix(exp));
+    RegularExpression.removeUselessEpsilons(exp);
+    TestingFramework.assertStringEquals('*a', RegularExpression.serializePrefix(exp));
+    Automaton.destroy(aut);
+    RegularExpression.destroyExpression(exp);
+
+    // zkusíme převést složitý automat se smyčkami
+    aut := Automaton.createAutomaton();
+    Automaton.parseStates(aut, 'IXXF');
+    Automaton.parseEdge(aut, '1 2 S a');
+    Automaton.parseEdge(aut, '1 3 S b');
+    Automaton.parseEdge(aut, '2 1 S c');
+    Automaton.parseEdge(aut, '2 3 S x');
+    Automaton.parseEdge(aut, '3 2 S y');
+    Automaton.parseEdge(aut, '3 4 S h');
+    Automaton.parseEdge(aut, '2 4 S d');
+    exp := Converter.nondeterministicToRegex(aut);
+    RegularExpression.removeUselessEpsilons(exp);
+    TestingFramework.assertStringEquals(
+        '+.a.*.cad.+b.a.*.ca+x.cb.*.y.*.ca+x.cb+h.y.*.cad',
+        RegularExpression.serializePrefix(exp)
+    );
     Automaton.destroy(aut);
     RegularExpression.destroyExpression(exp);
 end;
