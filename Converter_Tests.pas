@@ -8,7 +8,7 @@ implementation
 
 uses TestingFramework, Converter, RegularExpression, Automaton, List;
 
-// regulérní výraz na nedeteerministický automat
+// regulérní výraz na nedeterministický automat
 procedure RxToNda();
 var exp: RegularExpression.PNode;
 var aut: Automaton.PAutomaton;
@@ -77,6 +77,7 @@ begin
     Automaton.destroy(aut);
 end;
 
+// nedeterministický automat na regulérní výraz
 procedure NdaToRgx();
 var exp: RegularExpression.PNode;
 var aut: Automaton.PAutomaton;
@@ -148,6 +149,31 @@ begin
     RegularExpression.destroyExpression(exp);
 end;
 
+// nedeterministický automat na deterministický
+procedure NdaToDa();
+var nda, da: Automaton.PAutomaton;
+begin
+    nda := Automaton.createAutomaton();
+    Automaton.parseStates(nda, 'IF');
+    Automaton.parseEdge(nda, '1 1 S a');
+    Automaton.parseEdge(nda, '1 1 S b');
+    Automaton.parseEdge(nda, '1 2 S a');
+    da := Converter.nondeterministicToDeterministic(nda);
+
+    TestingFramework.assertStringEquals('IF', Automaton.serializeStates(da));
+    TestingFramework.assertStringEquals(
+        '1 2 S a', Automaton.serializeEdge(da, List.getAt(da^.edges, 1)));
+    TestingFramework.assertStringEquals(
+        '1 1 S b', Automaton.serializeEdge(da, List.getAt(da^.edges, 2)));
+    TestingFramework.assertStringEquals(
+        '2 2 S a', Automaton.serializeEdge(da, List.getAt(da^.edges, 3)));
+    TestingFramework.assertStringEquals(
+        '2 1 S b', Automaton.serializeEdge(da, List.getAt(da^.edges, 4)));
+
+    Automaton.destroy(nda);
+    Automaton.destroy(da);
+end;
+
 procedure runTests();
 begin
     TestingFramework.testSuite('Converter - RxToNda');
@@ -155,6 +181,9 @@ begin
 
     TestingFramework.testSuite('Converter - NdaToRgx');
     NdaToRgx();
+
+    TestingFramework.testSuite('Converter - NdaToDa');
+    NdaToDa();
 end;
 
 end.

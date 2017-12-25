@@ -18,6 +18,10 @@ function getLength(list: PList): integer;
 procedure append(var list: PList; item: Pointer);
 procedure remove(var list: PList; item: Pointer);
 procedure destroy(var list: PList);
+function clone(source: PList): PList;
+function pop(var list: PList): Pointer;
+function setsEqual(a, b: PList): boolean;
+function getLast(list: PList): Pointer;
 
 implementation
 
@@ -136,6 +140,69 @@ begin
         dispose(list);
         list := tmp;
     end;
+end;
+
+{**
+ * Vytvoří kopii seznamu, která ukazuje na stejné prvky (^.item)
+ *}
+function clone(source: PList): PList;
+begin
+    clone := nil;
+
+    while source <> nil do begin
+        List.append(clone, source^.item);
+        source := source^.next;
+    end;
+end;
+
+{**
+ * Odebere a vrátí první prvek ze seznamu
+ *}
+function pop(var list: PList): Pointer;
+begin
+    if list = nil then begin
+        writeln('ERROR! Popping empty list');
+        halt;
+    end;
+
+    pop := list^.item;
+    list := list^.next;
+end;
+
+{**
+ * Porovná dva seznamy jako množiny - zda obsahují stejné prvky
+ *}
+function setsEqual(a, b: PList): boolean;
+begin
+    // zkontrolujeme velikosti
+    if getLength(a) <> getLength(b) then begin
+        setsEqual := false;
+        exit;
+    end;
+
+    // když jsou stejně velké, stačí iterovat jen přes jeden z nich
+    while a <> nil do begin
+        // je prvek i v druhém seznamu?
+        if indexOf(b, a^.item) = -1 then begin
+            // není -> jsou různé
+            setsEqual := false;
+            exit;
+        end;
+
+        a := a^.next;
+    end;
+
+    setsEqual := true;
+end;
+
+{**
+ * Vrátí poslední prvek seznamu
+ *}
+function getLast(list: PList): Pointer;
+begin
+    // ne úplně ideální implementace, ale funkce
+    // existuje (zatím) jen kvůli lazení
+    getLast := getAt(list, getLength(list));
 end;
 
 end.

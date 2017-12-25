@@ -19,7 +19,7 @@ begin
 end;
 
 procedure runTests();
-var l: PList;
+var l, m: PList;
 var a, b, c: ^char;
 begin
     TestingFramework.testSuite('List');
@@ -65,6 +65,12 @@ begin
     List.remove(l, b);
     TestingFramework.assertIntEquals(1, List.indexOf(l, a));
     TestingFramework.assertIntEquals(2, List.indexOf(l, c));
+
+    // zkusíme klonování
+    m := List.clone(l);
+    List.destroy(l);
+    TestingFramework.assertIntEquals(1, List.indexOf(m, a));
+    TestingFramework.assertIntEquals(2, List.indexOf(m, c));
 end;
 
 end.
