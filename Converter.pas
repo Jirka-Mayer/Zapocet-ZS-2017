@@ -70,7 +70,9 @@ begin
     final := Automaton.createState(aut, false, true);
 
     // a vytvoříme tělo automatu rekurzivně
-    regexToNondeterministic_body(aut, exp, initial, final);
+    if exp <> nil then begin // pokud není prázdný jazyk
+        regexToNondeterministic_body(aut, exp, initial, final);
+    end;
 
     // a vrátíme ho
     regexToNondeterministic := aut;
@@ -86,7 +88,7 @@ end;
  *}
 function nondeterministicToRegex(aut: Automaton.PAutomaton): RegularExpression.PNode;
 var initial, final: Automaton.PState;
-var s, input, output: List.PList;
+var s, e, input, output: List.PList;
 var inputs, outputs: List.PList;
 var loop: Automaton.PRegexEdge;
 begin
@@ -196,8 +198,20 @@ begin
     end;
 
     // vrátíme zbylý regulární výraz mezi počátečním a koncovým stavem
-    nondeterministicToRegex := RegularExpression.clone(
-        Automaton.PRegexEdge(initial^.edges^.item)^.expression);
+    // pokud existuje, jinak máme prázdný jazyk
+    e := initial^.edges;
+    while e <> nil do begin
+
+        // máme hranu z počátečního do koncového
+        if Automaton.PRegexEdge(e^.item)^.target = final then begin
+            nondeterministicToRegex := RegularExpression.clone(
+                Automaton.PRegexEdge(initial^.edges^.item)^.expression);
+            exit;
+        end;
+    end;
+
+    // žádná taková hrana není -> vrátíme prázdný jazyk
+    nondeterministicToRegex := nil;
 end;
 
 //////////////////////////////////////////

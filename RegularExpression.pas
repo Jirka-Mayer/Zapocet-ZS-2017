@@ -12,7 +12,6 @@ const ALTERNATION_SYMBOL = '+';
 const CONCATENATION_SYMBOL = '.';
 const KLEENE_SYMBOL = '*';
 const EPSILON_SYMBOL = '!';
-const EMPTY_SET_SYMBOL = '@';
 
 // identifikátory typů uzlů
 const NODE_TYPE__EMPTY_SET = 0;       // 0
@@ -256,6 +255,12 @@ end;
 function removeUselessEpsilons(var expression: PNode): boolean;
 var tmp: PNode;
 begin
+    // prázdný jazyk
+    if expression = nil then begin
+        removeUselessEpsilons := false;
+        exit;
+    end;
+
     removeUselessEpsilons := false;
 
     // vyházíme epsilony z pod-výrazů
@@ -372,6 +377,11 @@ function serializePrefix(expression: PNode): AnsiString;
 begin
     serializePrefix := '';
 
+    // prázdný jazyk
+    if expression = nil then begin
+        exit;
+    end;
+
     if isNodeOfType(expression, NODE_TYPE__SYMBOL) then begin
         serializePrefix += PSymbolNode(expression)^.symbol;
     end else if isNodeOfType(expression, NODE_TYPE__CONCATENATION) then begin
@@ -407,6 +417,11 @@ end;
  *}
 procedure destroyExpression(expression: PNode);
 begin
+    // prázdný jazyk
+    if expression = nil then begin
+        exit;
+    end;
+
     // provedeme uvolnění podle typu
     if isNodeOfType(expression, NODE_TYPE__SYMBOL) then begin
         destroySymbolNode(expression);
@@ -550,6 +565,12 @@ begin
     textToParse := serialized;
     textToParse_start := 1;
     textToParse_end := length(serialized);
+
+    // prázdný jazyk - serializuje se jako ""
+    if length(serialized) = 0 then begin
+        parse := nil;
+        exit;
+    end;
 
     parse := parseStart();
 end;
