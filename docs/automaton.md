@@ -1,0 +1,3 @@
+# Automat
+
+## Serializace automatu
