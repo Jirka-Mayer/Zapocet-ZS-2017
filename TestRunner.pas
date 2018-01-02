@@ -6,7 +6,8 @@ uses
     List_Tests,
     RegularExpression_Tests,
     Automaton_Tests,
-    Converter_Tests;
+    Converter_Tests,
+    Feature_Tests;
 
 begin
     TestingFramework_Tests.runTests();
@@ -14,6 +15,7 @@ begin
     RegularExpression_Tests.runTests();
     Automaton_Tests.runTests();
     Converter_Tests.runTests();
+    Feature_Tests.runTests();
 
     writeln('All tests were run.');
 end.

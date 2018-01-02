@@ -10,6 +10,7 @@ procedure testSuite(suiteName: string);
 procedure assertIntEquals(expected, tested: integer);
 procedure assertStringEquals(expected, tested: AnsiString);
 procedure assertPointerEquals(expected, tested: Pointer);
+procedure assertFileEquals(expected, tested: AnsiString);
 
 implementation
 
@@ -96,6 +97,48 @@ begin
         '0x' + IntToHex(longword(expected), 8),
         '0x' + IntToHex(longword(tested), 8)
     );
+end;
+
+{**
+ * Testuje, zda dva textové soubory obsahují stejná data
+ *}
+procedure assertFileEquals(expected, tested: AnsiString);
+var eFile, tFile: text;
+var eLine, tLine: AnsiString;
+var i: integer;
+begin
+    assign(eFile, expected);
+    assign(tFile, tested);
+    reset(eFile);
+    reset(tFile);
+
+    i := 1;
+    while not eof(eFile) do begin
+        readln(eFile, eLine);
+        readln(tFile, tLine);
+        if eLine <> tLine then begin
+            error(
+                'Files do not match at line ' + IntToStr(i),
+                'assertFileEquals',
+                '"' + eLine + '"',
+                '"' + tLine + '"'
+            );
+            break;
+        end;
+        i += 1;
+    end;
+
+    if not seekeof(tFile) then begin
+        error(
+            'Files do not match',
+            'assertFileEquals',
+            expected,
+            tested
+        );
+    end;
+
+    close(eFile);
+    close(tFile);
 end;
 
 end.

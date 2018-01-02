@@ -91,6 +91,9 @@ function parseEdge(aut: PAutomaton; serialized: AnsiString): PEdge;
 
 procedure printAutomaton(aut: PAutomaton);
 
+function loadFrom(filename: AnsiString): PAutomaton;
+procedure saveTo(automaton: PAutomaton; filename, automatonType: AnsiString);
+
 // typy přechodů
 const EDGE_TYPE__SYMBOL = 100;
 const EDGE_TYPE__REGEX = 200;
@@ -596,6 +599,63 @@ begin
     end
 end;
 
+{**
+ * Načte automat ze souboru
+ *}
+function loadFrom(filename: AnsiString): PAutomaton;
+var f: text;
+var line: AnsiString;
+begin
+    assign(f, filename);
+    reset(f);
+
+    // zkontrolujeme typ
+    readln(f, line);
+    if (line <> 'NDA') and (line <> 'DA') then begin
+        writeln('ERROR! loading automaton from file of other type');
+        halt;
+    end;
+
+    loadFrom := createAutomaton();
+
+    // načteme stavy
+    readln(f, line);
+    parseStates(loadFrom, line);
+
+    // načteme hrany
+    while not eof(f) do begin
+        readln(f, line);
+        parseEdge(loadFrom, line);
+    end;
+
+    close(f);
+end;
+
+{**
+ * Uloží automat do souboru
+ * 
+ * (musí se specifikovat typ, protože ten se
+ * neukládá v záznamu, ten je z kontextu)
+ *}
+procedure saveTo(automaton: PAutomaton; filename, automatonType: AnsiString);
+var f: text;
+var e: List.PList;
+begin
+    assign(f, filename);
+    rewrite(f);
+
+    writeln(f, automatonType);
+    writeln(f, serializeStates(automaton));
+
+    e := automaton^.edges;
+    while e <> nil do begin
+        writeln(f, serializeEdge(automaton, e^.item));
+        e := e^.next;
+    end;
+
+    close(f);
+end;
+
 ///////////
 // Debug //
 ///////////
@@ -610,6 +670,6 @@ begin
     for i := 1 to edgeCount do
         writeln(serializeEdge(aut, List.getAt(aut^.edges, i)));
     writeln();
-end;
+end;    
 
 end.

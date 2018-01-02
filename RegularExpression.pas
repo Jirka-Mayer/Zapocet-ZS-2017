@@ -12,6 +12,7 @@ const ALTERNATION_SYMBOL = '+';
 const CONCATENATION_SYMBOL = '.';
 const KLEENE_SYMBOL = '*';
 const EPSILON_SYMBOL = '!';
+const EMPTY_SET_SYMBOL = '@';
 
 // identifikátory typů uzlů
 const NODE_TYPE__EMPTY_SET = 0;       // 0
@@ -39,6 +40,9 @@ function createKleeneNode(a: PNode): PNode;
 function clone(source: PNode): PNode;
 function removeUselessEpsilons(var expression: PNode): boolean;
 function isNodeOfType(node: PNode; nodeType: byte): boolean;
+
+function loadFrom(filename: AnsiString): PNode;
+procedure saveTo(expression: PNode; filename: AnsiString);
 
 // list stromu - symbol abecedy
 type TSymbolNode = record
@@ -548,6 +552,48 @@ begin
     textToParse_end := length(serialized);
 
     parse := parseStart();
+end;
+
+{**
+ * Načte regulární výraz ze souboru
+ *}
+function loadFrom(filename: AnsiString): PNode;
+var f: text;
+var line: AnsiString;
+begin
+    assign(f, filename);
+    reset(f);
+
+    // zkontrolujeme typ
+    readln(f, line);
+    if line <> 'RE' then begin
+        writeln('ERROR! loading RE from file of other type');
+        halt;
+    end;
+
+    // načteme
+    readln(f, line);
+    loadFrom := parse(line);
+
+    close(f);
+end;
+
+{**
+ * Uloží výraz do souboru
+ *}
+procedure saveTo(expression: PNode; filename: AnsiString);
+var f: text;
+begin
+    assign(f, filename);
+    rewrite(f);
+
+    // zapíšeme typ
+    writeln(f, 'RE');
+
+    // zapíšeme
+    writeln(f, serializePrefix(expression));
+
+    close(f);
 end;
 
 end.

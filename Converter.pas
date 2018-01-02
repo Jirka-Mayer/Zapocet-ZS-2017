@@ -7,6 +7,7 @@ uses RegularExpression, Automaton, List;
 function regexToNondeterministic(exp: RegularExpression.PNode): Automaton.PAutomaton;
 function nondeterministicToRegex(aut: Automaton.PAutomaton): RegularExpression.PNode;
 function nondeterministicToDeterministic(nda: Automaton.PAutomaton): Automaton.PAutomaton;
+procedure convert(inputFilename, outputFilename, outputType: AnsiString);
 
 implementation
 
@@ -338,6 +339,51 @@ begin
 end;
 
 {**
+ * Přidá do množiny stavů stavy za epsilon přechodem (i za dvěma)
+ *}
+procedure extendStateSetByEpsilon(stateSet: List.PList);
+var s, e: List.PList;
+var state: Automaton.PState;
+begin
+    // přes všechny stavy množiny
+    s := stateSet;
+    while s <> nil do begin
+        // a přes všechny hrany v tom stavu
+        e := Automaton.PState(s^.item)^.edges;
+        while e <> nil do begin
+            
+            // zkontrolujeme, že je hrana symbolová
+            if not Automaton.isEdgeOfType(e^.item, EDGE_TYPE__SYMBOL) then begin
+                e := e^.next;
+                continue;
+            end;
+            
+            // přeskočíme ne-epsilon hranu
+            if Automaton.PSymbolEdge(e^.item)^.symbol <> EPSILON_SYMBOL then begin
+                e := e^.next;
+                continue;
+            end;
+
+            // přidáme koncový stav do množiny, pokud tam ještě není
+            state := Automaton.PSymbolEdge(e^.item)^.target;
+            if List.indexOf(stateSet, state) = -1 then begin
+                List.append(stateSet, state);
+            end;
+
+            {
+                jelikož se stav přidá na konec seznamu (množiny), tak
+                se přes něj bude iterovat, tedy se přidají i jeho sousedi
+                bez potřeby nějaké rekurze
+            }
+
+            e := e^.next;
+        end;
+
+        s := s^.next;
+    end;
+end;
+
+{**
  * Z daného stavu (množiny stavů) vytvoří záznam v tabulce
  *}
 procedure renderStateSet(
@@ -350,9 +396,9 @@ var s, e, t: List.PList;
 //var transition: PStateTransition; // DEBUG
 begin
     // DEBUG
-    //writeln();
-    //write('Render state set: ');
-    //printStateSet(aut, stateSet);
+    {writeln();
+    write('Render state set: ');
+    printStateSet(aut, stateSet);}
 
     // vytvoříme záznam tabulky
     new(rec);
@@ -360,16 +406,23 @@ begin
     rec^.transitions := nil;
     rec^.daState := nil;
 
-    // přes všechny stavy NDA
+    // přes všechny stavy množiny
     s := stateSet;
     while s <> nil do begin
         // a přes všechny hrany v tom stavu
         e := Automaton.PState(s^.item)^.edges;
         while e <> nil do begin
+            
             // zkontrolujeme, že je hrana symbolová
             if not Automaton.isEdgeOfType(e^.item, EDGE_TYPE__SYMBOL) then begin
                 writeln('ERROR! converting NDA to DA, but NDA has non-symbol edges!');
                 halt;
+            end;
+
+            // přeskočíme epsilon hranu
+            if Automaton.PSymbolEdge(e^.item)^.symbol = EPSILON_SYMBOL then begin
+                e := e^.next;
+                continue;
             end;
 
             // zobrazíme stav na cílový
@@ -381,9 +434,9 @@ begin
             );
 
             // DEBUG
-            //writeln('Adding transition [', transition^.symbol, ']:');
-            //write('state set sofar: ');
-            //printStateSet(aut, transition^.stateSet);
+            {writeln('Adding transition [', transition^.symbol, ']:');
+            write('state set sofar: ');
+            printStateSet(aut, transition^.stateSet);}
 
             e := e^.next;
         end;
@@ -399,6 +452,9 @@ begin
     t := rec^.transitions;
     while t <> nil do begin
         s := PStateTransition(t^.item)^.stateSet; // recyklujem proměnnou "s"
+
+        // každý stav rozšíříme o epsilon přechody
+        extendStateSetByEpsilon(s);
 
         // a která množina není vyřešená, přidáme do unresolved
         if not isStateSetResolved(table, s) then begin
@@ -466,6 +522,7 @@ begin
     
     table.records := nil;
     table.unresolved := nil;
+    extendStateSetByEpsilon(nda^.initialStates);
     List.append(table.unresolved, List.clone(nda^.initialStates));
     while table.unresolved <> nil do begin // dokud máme něco na práci
         // vytáhneme další stav
@@ -535,6 +592,93 @@ begin
 
     // vrátíme automat
     nondeterministicToDeterministic := da;
+end;
+
+//////////////////////////////
+// Obecná funkce pro převod //
+//////////////////////////////
+
+{**
+ * Vrátí typ entity uvnitř souboru
+ *}
+function getFileType(filename: AnsiString): AnsiString;
+var f: text;
+begin
+    assign(f, filename);
+    reset(f);
+    readln(f, getFileType);
+    close(f);
+
+    if (getFileType <> 'RE') and (getFileType <> 'NDA') and (getFileType <> 'DA') then begin
+        writeln('ERROR! Unknown file type. File: ' + filename);
+        halt;
+    end;
+end;
+
+{**
+ * Převede celý soubor obsahující nějakou entitu na jinou entitu v jiném souboru
+ * outputType - typ entity -> ['RE', 'NDA', 'DA']
+ *}
+procedure convert(inputFilename, outputFilename, outputType: AnsiString);
+var inputType: AnsiString;
+var nda, da: Automaton.PAutomaton;
+var exp: RegularExpression.PNode;
+begin
+    inputType := getFileType(inputFilename);
+
+    if inputType = 'RE' then begin
+        exp := RegularExpression.loadFrom(inputFilename);
+
+        if outputType = 'RE' then begin
+            RegularExpression.saveTo(exp, outputFilename);
+        end else if outputType = 'NDA' then begin
+            nda := regexToNondeterministic(exp);
+            Automaton.saveTo(nda, outputFilename, 'NDA');
+            Automaton.destroy(nda);
+        end else if outputType = 'DA' then begin
+            nda := regexToNondeterministic(exp);
+            da := nondeterministicToDeterministic(nda);
+            Automaton.saveTo(da, outputFilename, 'DA');
+            Automaton.destroy(nda);
+            Automaton.destroy(da);
+        end;
+
+        RegularExpression.destroyExpression(exp);
+    end else if inputType = 'NDA' then begin
+        nda := Automaton.loadFrom(inputFilename);
+
+        if outputType = 'RE' then begin
+            exp := nondeterministicToRegex(nda);
+            RegularExpression.removeUselessEpsilons(exp); // /!\
+            RegularExpression.saveTo(exp, outputFilename);
+            RegularExpression.destroyExpression(exp);
+        end else if outputType = 'NDA' then begin
+            Automaton.saveTo(nda, outputFilename, 'NDA');
+        end else if outputType = 'DA' then begin
+            da := nondeterministicToDeterministic(nda);
+            Automaton.saveTo(da, outputFilename, 'DA');
+            Automaton.destroy(da);
+        end;
+
+        Automaton.destroy(nda);
+    end else if inputType = 'DA' then begin
+        da := Automaton.loadFrom(inputFilename);
+
+        if outputType = 'RE' then begin
+            // implicitní převod DA -> NDA
+            exp := nondeterministicToRegex(da);
+            RegularExpression.removeUselessEpsilons(exp); // /!\
+            RegularExpression.saveTo(exp, outputFilename);
+            RegularExpression.destroyExpression(exp);
+        end else if outputType = 'NDA' then begin
+            // implicitní převod DA -> NDA
+            Automaton.saveTo(da, outputFilename, 'NDA');
+        end else if outputType = 'DA' then begin
+            Automaton.saveTo(da, outputFilename, 'DA');
+        end;
+
+        Automaton.destroy(da);
+    end;
 end;
 
 end.

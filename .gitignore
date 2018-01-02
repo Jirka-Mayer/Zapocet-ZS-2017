@@ -4,3 +4,4 @@
 *.o
 MainProgram
 TestRunner
+tests/temp.txt
