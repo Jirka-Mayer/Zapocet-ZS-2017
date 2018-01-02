@@ -3,6 +3,12 @@
 Převod mezi regulárními výrazy, konečnými automaty deterministickými a nedeterministickými.
 
 
+# Ještě dodělat
+
+- prázdné jazyky
+- prázdné řetězce
+
+
 # Dokumentace
 
 Čtenář by měl být obeznámen s významem termínů:
