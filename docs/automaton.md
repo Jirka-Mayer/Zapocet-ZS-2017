@@ -4,7 +4,7 @@ Deterministický konečný automat je množina stavů, z nichž jeden je počát
 
 Nedeterministický může mít více než jeden počáteční stav a více hran z jednoho stavu pro stejný symbol. Navíc může obsahovat epsilon přechody.
 
-> Poznámka: Program nijak nerozlišuje typ automatu za běhu. Pokud funkce očekávající deterministický automat a dostane nedeterministický, bude s ním pracovat jako s deterministickým, v lepším případě skončí program chybou, v horším vrátí výsledek s epsilonem jako běžným symbolem.
+> Poznámka: Program nijak nerozlišuje typ automatu za běhu. Pokud funkce očekává deterministický automat a dostane nedeterministický, bude s ním pracovat jako s deterministickým, v lepším případě skončí program chybou, v horším vrátí výsledek s epsilonem jako běžným symbolem.
 
 V programu existuje ještě speciální typ automatu, který je nedeterministický, ale hrany nejsou ohodnoceny symbolem, ale regulárním výrazem. Tento automat se používá pouze při převodu `NDA` na `RE` a jedná se o interní záležitost.
 

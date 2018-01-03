@@ -1,6 +1,6 @@
 # Regulární výraz
 
-Formální regulárí výrazy se od těch používaných v počítačích nepatrně liší. Například nepodporují operátory `?`, `[0-9]` a navíc se liší i notace operátorů. Tento program pracuje s výrazy formálními, tedy jediné operace jsou:
+Formální regulární výrazy se od těch používaných v počítačích nepatrně liší. Například nepodporují operátory `?`, `[0-9]` a navíc se liší i notace operátorů. Tento program pracuje s výrazy formálními, tedy jediné operace jsou:
 
 | Operace         | Znak operace                | Konstanta znaku        |
 | --------------- | --------------------------- | ---------------------- |
@@ -8,6 +8,7 @@ Formální regulárí výrazy se od těch používaných v počítačích nepatr
 | Konkatenace     | `.`                         | `CONCATENATION_SYMBOL` |
 | Alternace       | `+`                         | `ALTERNATION_SYMBOL`   |
 | Kleeneho hvězda | `*`                         | `KLEENE_SYMBOL`        |
+| Epsilon         | `!`                         | `EPSILON_SYMBOL`       |
 
 > Konstanty znaků jsou v souboru `RegularExpression.pas` a lze je změnit pro své potřeby.
 
@@ -42,7 +43,7 @@ Parsování řetězce provádí funkce `RegularExpression.parse` a vrátí ukaza
 
 ## Reprezentace výrazu v paměti
 
-Regulérní výraz je stromem binárních a unárních operátorů, je tedy logické ho jako strom reprezentovat. V paměti budou jednotlivé uzly a budou na sebe odkazovat pomocí pointerů (jako ve spojovém seznamu). Uzel stromu bude buď operátor s jedním nebo dvěma syny, nebo to bude symbol - uzel bez synů.
+Regulární výraz je stromem binárních a unárních operátorů, je tedy logické ho jako strom reprezentovat. V paměti budou jednotlivé uzly a budou na sebe odkazovat pomocí pointerů (jako ve spojovém seznamu). Uzel stromu bude buď operátor s jedním nebo dvěma syny, nebo to bude symbol - uzel bez synů.
 
 > Dědičnost struktur je popsaná v dokumentu [struktury programu](program-structure.md#dedicnost-struktur).
 
@@ -57,7 +58,7 @@ Struktury konkrétního typu operátoru mají své ID (např. `NODE_TYPE__KLEENE
 
 ### Epsilon symbol
 
-Epsilon je reprezentován klasickým uzlem symbolu, jen hodnota symbolu je předem určená - konrétně hodnota konstanty `RegularExpression.EPSILON_SYMBOL`.
+Epsilon je reprezentován klasickým uzlem symbolu, jen hodnota symbolu je předem určená - konkrétně hodnota konstanty `RegularExpression.EPSILON_SYMBOL`.
 
 > Na to se musí dávat pozor při práci se symbolovými uzly - metoda `isNodeOfType` s parametrem `NODE_TYPE__SYMBOL` vrátí `true` pro epsilonovou hranu.
 

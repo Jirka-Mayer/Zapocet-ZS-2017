@@ -2,9 +2,9 @@
 
 Program se vlastně skládá z několika převaděčů mezi jednotlivými typy entit.
 
-Entit je 8, převodů by tedy mělo být 6, ale můžeme ušetřit - není třeba
+Entity jsou 3, převodů by tedy mělo být 6, ale můžeme ušetřit - není třeba
 psát převaděč `DA -> NDA` protože deterministický automat je vlastně
-speciálním případem nedeterministického (implicitní přechod). Dále je zbytečné
+speciálním případem nedeterministického (implicitní převod). Dále je zbytečné
 umět převod `RE -> DA`, když stačí zřetězit převody `RE -> NDA -> DA`.
 Podobným způsobem můžeme dorazit na pouze 3 potřebné
 přechody (a jeden implicitní):
@@ -37,7 +37,7 @@ stav a nějaký regulární výraz a vytvoří mezi zadanými stavy
 odpovídající automat.
 
 Taková funkce má zřejmě rekurzivní charakter, který vyplývá z rekurzivní povahy
-regulérních výrazů.
+regulárních výrazů.
 
 Tedy stačí nám vymyslet, jak reprezentovat elementární operátory regulárního
 výrazu a pomocí rekurze můžeme zkonstruovat libovolný výraz.
@@ -84,8 +84,8 @@ a můžeme použít epsilon přechody.
 
 ### Epsilon
 
-Epsilonový výraz vypadá stejně jako běžný symbol. Dokonce mají stejnou
-implementaci (epsilon je jen specielním symbolem).
+Epsilonový výraz vypadá stejně jako běžný symbol. Dokonce má stejnou
+implementaci (epsilon je jen speciálním symbolem).
 
 <img src="../pics/epsilon.jpg" width="300">
 
@@ -124,7 +124,7 @@ epsilonových přechodů. Stejně tak automat může obsahovat epsilonové přec
 Jejich přítomnost ve výrazu nevadí, ale je často zbytečná.
 
 Některé epsilonové přechody můžeme odstranit procházením stromu výrazu a
-nahrazováním nsáledujících případů:
+nahrazováním následujících případů:
 
     epsilon . R   -->   R
     R . epsilon   -->   R
@@ -154,7 +154,6 @@ Počáteční množina stavů je - množina všech počátečních stavů `NDA`.
 
 Množina bude reprezentovat koncový stav, pokud alespoň jeden z jejích
 stavů je koncový. (to odpovídá představě `NDA`, že řetězec příjmá, pokud
-existuje alespoň nějaké cesta)
+existuje alespoň nějaká cesta)
 
-Nakonec se podle tabulky vytvoří deterministický automat, jen prázdné množiny
-v něm nebudou reprezentovány, protože se do nich nedá nijak dostat.
+Nakonec se podle tabulky vytvoří deterministický automat.

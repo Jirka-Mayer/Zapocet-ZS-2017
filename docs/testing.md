@@ -1,6 +1,6 @@
 # Testování
 
-Testování se skládá ze dvou částí - unity testy a feature testy.
+Testování se skládá ze dvou částí - unit testy a feature testy.
 
 
 ## Unit testy
@@ -9,7 +9,7 @@ Unit testy jsem psal v průběhu vývoje programu k testování jednotlivých pr
 
 Testovací knihovna je v jednotce `TestingFramework.pas` a umožňuje porovnávat hodnoty a při neshodě vypsat nějakou hezkou chybu. Navíc umožňuje pojmenovat skupinu testů (test suite).
 
-Každá jednodka má k sobě připojenou jednotku s příponou `_Tests`, ve které se nacházejí právě unit testy. Každá tato jednotka musí implementovat veřejnou proceduru `runTests` a všechny tyto jednotky se načtou v programu `TestRunner.pas`, který provede jejich spuštění.
+Každá jednotka má k sobě připojenou jednotku s příponou `_Tests`, ve které se nacházejí právě unit testy. Každá tato jednotka musí implementovat veřejnou proceduru `runTests` a všechny tyto jednotky se načtou v programu `TestRunner.pas`, který provede jejich spuštění.
 
 Testování tedy probíhá tak, že zkompiluji `TestRunner` - to mi provede syntaktickou a sémantickou kontrolu a jeho spuštěním provedeme kontrolu logickou.
 
